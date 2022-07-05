@@ -8,7 +8,12 @@ from sklearn.compose import ColumnTransformer
 from TaxiFareModel.utils import compute_rmse, haversine_vectorized
 from TaxiFareModel.data import get_data, clean_data
 from sklearn.model_selection import train_test_split
-import pandas as pd
+import mlflow
+from mlflow.tracking import MlflowClient
+from memoized_property import memoized_property
+
+MLFLOW_URI = "https://mlflow.lewagon.ai/"
+
 
 class Trainer():
     def __init__(self, X, y):
@@ -17,6 +22,7 @@ class Trainer():
             y: pandas Series
         """
         self.pipeline = None
+        self.experiment_name = "[DE][Remote][sridhar211]TaxiFareModel_1.0"
         self.X = X
         self.y = y
 
@@ -53,10 +59,32 @@ class Trainer():
         rmse = compute_rmse(y_pred, y_test)
         return rmse
 
+    @memoized_property
+    def mlflow_client(self):
+        mlflow.set_tracking_uri(MLFLOW_URI)
+        return MlflowClient()
+
+    @memoized_property
+    def mlflow_experiment_id(self):
+        try:
+            return self.mlflow_client.create_experiment(self.experiment_name)
+        except BaseException:
+            return self.mlflow_client.get_experiment_by_name(self.experiment_name).experiment_id
+
+    @memoized_property
+    def mlflow_run(self):
+        return self.mlflow_client.create_run(self.mlflow_experiment_id)
+
+    def mlflow_log_param(self, key, value):
+        self.mlflow_client.log_param(self.mlflow_run.info.run_id, key, value)
+
+    def mlflow_log_metric(self, key, value):
+        self.mlflow_client.log_metric(self.mlflow_run.info.run_id, key, value)
 
 if __name__ == "__main__":
     # get and clean data
-    df = get_data(10_000)
+    samples=1000
+    df = get_data(samples)
     df = clean_data(df)
 
     # set X and y
@@ -78,3 +106,7 @@ if __name__ == "__main__":
     rmse = trainer.evaluate(X_val, y_val)
 
     print(rmse)
+
+    trainer.mlflow_log_metric("rmse", rmse)
+    trainer.mlflow_log_param("model", 'linear')
+    trainer.mlflow_log_param("Train_samples", samples)
