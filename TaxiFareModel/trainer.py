@@ -11,6 +11,7 @@ from sklearn.model_selection import train_test_split
 import mlflow
 from mlflow.tracking import MlflowClient
 from memoized_property import memoized_property
+import joblib
 
 MLFLOW_URI = "https://mlflow.lewagon.ai/"
 
@@ -81,6 +82,10 @@ class Trainer():
     def mlflow_log_metric(self, key, value):
         self.mlflow_client.log_metric(self.mlflow_run.info.run_id, key, value)
 
+    def save_model(self):
+        """ Save the trained model into a model.joblib file """
+        joblib.dump(self.pipeline, 'model.joblib')
+
 if __name__ == "__main__":
     # get and clean data
     samples=1000
@@ -110,3 +115,5 @@ if __name__ == "__main__":
     trainer.mlflow_log_metric("rmse", rmse)
     trainer.mlflow_log_param("model", 'linear')
     trainer.mlflow_log_param("Train_samples", samples)
+
+    trainer.save_model()
