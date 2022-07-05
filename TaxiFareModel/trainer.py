@@ -51,6 +51,7 @@ class Trainer():
     def run(self):
         """set and train the pipeline"""
         '''returns a trained pipelined model'''
+        self.set_pipeline()
         self.pipeline.fit(self.X, self.y)
         return
 
@@ -100,9 +101,6 @@ if __name__ == "__main__":
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.15)
 
     trainer=Trainer(X_train,y_train)
-
-    # build pipeline
-    trainer.set_pipeline()
 
     # train the pipeline
     trainer.run()
